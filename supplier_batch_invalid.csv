@@ -1,0 +1,2 @@
+supplier_number,supplier_name,invoice_number,department,invoice_date,amount_excl,vat_rate
+S009,OfficeCo,OC-99999,Ops,2027-01-01,2175.00,15
