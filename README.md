@@ -161,7 +161,7 @@
 
 ## Node-by-Node Breakdown — Main Workflow (supplier-ingest.json)
 
-![main ingest workflow  executionsPNG](file:///C:/Users/Super%20Tonka/Desktop/4%20-%20HORSEMEN/15%20-%20FULL%20STACK/AI%20SOFTWARE%20ENGINEER%20WORK/deliverables/new/main%20ingest%20workflow%20+%20executions.PNG?msec=1773191476300)
+<img width="1774" height="922" alt="main ingest workflow + executions" src="https://github.com/user-attachments/assets/a83d8e70-a7b9-41da-8a67-0241ed9741ee" />
 
 Screenshot showing entire '`supplier-ingest.json`' workflow with sticky-notes.
 
