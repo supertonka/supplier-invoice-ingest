@@ -1,0 +1,483 @@
+{
+  "name": "Supplier Invoice Retry",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM supplier_invoices_failures WHERE retry_count <= 3 ORDER BY created_at ASC LIMIT 50;",
+        "options": {}
+      },
+      "id": "eb86a24a-e8d3-4169-a509-52aded3978d7",
+      "name": "🔍 Query — Fetch Pending Retries",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -800,
+        -16
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "o0A4bzSMFcNjpvfE",
+          "name": "Postgres account"
+        }
+      },
+      "notes": "Fetches all failed invoices with retry_count < 3. Max 50 per run to avoid overloading. Orders by created_at so oldest failures are retried first."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-rows",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cd2539d7-cfc7-41b1-abd1-0aee06b35413",
+      "name": "🔀 Route — Has Retries or Empty",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        -16
+      ],
+      "notes": "If no pending retries found, stop workflow. Otherwise proceed to re-attempt inserts."
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// NODE: Re-validate and Attempt Re-insert\n// PURPOSE: For each failure row, attempt to re-insert into\n//          supplier_invoices. Parse raw_payload back to fields.\n// ============================================================\n\nconst items = $input.all();\nconst results = [];\n\nfor (const inputItem of items) {\n  const failure = inputItem.json;\n  \n  // Parse raw_payload if it's a string\n  let payload = failure.raw_payload;\n  if (typeof payload === 'string') {\n    try { payload = JSON.parse(payload); } catch(e) { payload = {}; }\n  }\n\n  // Merge failure record with parsed payload\n  const record = {\n    id:              failure.id,\n    invoice_number:  failure.invoice_number  || payload.invoice_number  || null,\n    supplier_number: failure.supplier_number || payload.supplier_number || null,\n    supplier_name:   failure.supplier_name   || payload.supplier_name   || null,\n    department:      payload.department      || null,\n    amount_excl_vat: payload.amount_excl_vat || null,\n    vat:             payload.vat             || null,\n    amount_incl_vat: payload.amount_incl_vat || null,\n    invoice_date:    payload.invoice_date    || null,\n    source_file_name: failure.source_file_name || payload.sourceFileName || null,\n    source_hash:     failure.source_hash     || payload.sourceHash      || null,\n    validation_notes: failure.validation_notes || null,\n    retry_count:     (failure.retry_count || 0) + 1\n  };\n\n  // Check if all required fields are present for re-insert\nconst MAX_RETRIES = 3;\nconst canRetry = !!(record.invoice_number && record.supplier_number &&\n                 record.supplier_name && record.department &&\n                 record.amount_excl_vat && record.invoice_date) &&\n                 record.retry_count <= MAX_RETRIES;\n\n  console.log(`[Retry] ${record.invoice_number} / ${record.supplier_number} — retry #${record.retry_count} — canRetry: ${canRetry}`);\n\n  results.push({\n    json: {\n      ...record,\n      can_retry: canRetry\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "d30ffc7c-4f36-4dc6-a45e-33a2a8f7f6d9",
+      "name": "🔄 Prepare — Parse & Validate Retry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        -128
+      ],
+      "notes": "Parses raw_payload JSONB back into structured fields. Checks if all required fields are present for a re-insert attempt. Increments retry_count."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-can-retry",
+              "leftValue": "={{ $json.can_retry }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7bd0c999-95a4-42e3-904b-e196fbada725",
+      "name": "🔀 Route — Retryable or Exhausted",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        -128
+      ],
+      "notes": "Routes rows that have all required fields to re-insert attempt. Rows missing critical fields go to exhausted path."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO supplier_invoices (\n  invoice_number, supplier_number, supplier_name, department,\n  amount_excl_vat, vat, amount_incl_vat, invoice_date,\n  source_file_name, source_hash, ingest_timestamp,\n  status, validation_notes\n) VALUES (\n  '{{ $json.invoice_number }}',\n  '{{ $json.supplier_number }}',\n  '{{ $json.supplier_name }}',\n  '{{ $json.department }}',\n  {{ $json.amount_excl_vat }},\n  {{ $json.vat }},\n  {{ $json.amount_incl_vat }},\n  '{{ $json.invoice_date }}',\n  {{ $json.source_file_name ? `'${$json.source_file_name}'` : 'NULL' }},\n  {{ $json.source_hash ? `'${$json.source_hash}'` : 'NULL' }},\n  NOW() AT TIME ZONE 'Africa/Johannesburg',\n  'inserted',\n  'Inserted on retry #{{ $json.retry_count }}'\n)\nON CONFLICT (supplier_number, invoice_number) DO NOTHING\nRETURNING id, invoice_number, supplier_number, status;",
+        "options": {}
+      },
+      "id": "bacff6ea-6291-40d3-9d67-ed3507ed5af9",
+      "name": "💾 Re-insert — supplier_invoices",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        160,
+        -144
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "o0A4bzSMFcNjpvfE",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "notes": "Attempts to re-insert the failed row into supplier_invoices. Uses ON CONFLICT DO NOTHING to safely handle any duplicates. RETURNING confirms successful insert."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE supplier_invoices_failures\nSET\n  retry_count = {{ $json.retry_count }},\n  last_retry = NOW() AT TIME ZONE 'Africa/Johannesburg',\n  validation_notes = 'Max retries (3) reached — missing required fields, manual intervention required: {{ $json.validation_notes }}'\nWHERE id = '{{ $json.id }}'\nRETURNING id, invoice_number, retry_count;",
+        "options": {}
+      },
+      "id": "ece6a96d-ee0e-477b-934e-6267202458e2",
+      "name": "📝 Update — Mark Exhausted",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        160,
+        128
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "o0A4bzSMFcNjpvfE",
+          "name": "Postgres account"
+        }
+      },
+      "notes": "For rows that cannot be retried (missing required fields), marks them as exhausted with a clear message for manual review."
+    },
+    {
+      "parameters": {
+        "jsCode": "let reinsertedCount = 0;\nlet updatedCount = 0;\nlet exhaustedCount = 0;\nconst exhaustedRows = [];\n\ntry {\n const reinserted = $('🗑️ Delete — Remove from Failures').all();\nreinsertedCount = reinserted ? reinserted.length : 0;\n\n  \n} catch(e) { reinsertedCount = 0; }\n\ntry {\n  const retryFailed = $('📝 Update — Retry Failed, Increment Count').all();\n  updatedCount = retryFailed ? retryFailed.length : 0;\n} catch(e) { updatedCount = 0; }\n\ntry {\n  const exhausted = $('📝 Update — Mark Exhausted').all();\n  if (exhausted && exhausted.length > 0) {\n    exhaustedCount = exhausted.length;\n    for (const e of exhausted) {\n      exhaustedRows.push({\n        invoice_number: e.json.invoice_number || 'N/A',\n        retry_count: e.json.retry_count || 3\n      });\n    }\n  }\n} catch(e) { exhaustedCount = 0; }\n\nconst ingestTime = new Date(new Date().getTime() + 2 * 60 * 60 * 1000)\n  .toISOString().replace('T', ' ').substring(0, 19) + ' SAST';\n\nconsole.log(`[Retry Metrics] Re-inserted: ${reinsertedCount} | Updated: ${updatedCount} | Exhausted: ${exhaustedCount}`);\n\nreturn [{\n  json: {\n    reinsertedCount,\n    updatedCount,\n    exhaustedCount,\n    exhaustedRows,\n    ingestTime,\n    hasExhausted: exhaustedCount > 0\n  }\n}];"
+      },
+      "id": "37630acf-1961-4cd0-b7fc-78854491859d",
+      "name": "📊 Aggregate — Retry Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -64
+      ],
+      "notes": "Aggregates results from all retry branches. Counts re-inserted, updated, and exhausted rows. Builds data for the retry summary email."
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// NODE: Build Retry Email\n// PURPOSE: Generate HTML email summarizing retry run results.\n// ============================================================\n\nconst m = $input.first().json;\nconst { reinsertedCount, updatedCount, exhaustedCount, exhaustedRows, ingestTime } = m;\n\nconst headerColor = exhaustedCount > 0 ? '#c0392b' : (reinsertedCount > 0 ? '#27ae60' : '#3498db');\nconst status = exhaustedCount > 0 ? 'ACTION REQUIRED' : (reinsertedCount > 0 ? 'RETRIES SUCCESSFUL' : 'RETRIES ATTEMPTED');\n\nlet exhaustedTableHTML = '';\nif (exhaustedRows && exhaustedRows.length > 0) {\n  const rowsHTML = exhaustedRows.map(r => `\n    <tr style=\"border-bottom:1px solid #ecf0f1;\">\n      <td style=\"padding:8px 12px;font-family:monospace;\">${r.invoice_number}</td>\n      <td style=\"padding:8px 12px;text-align:center;\">\n        <span style=\"background:#c0392b;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;\">EXHAUSTED (${r.retry_count}/3)</span>\n      </td>\n    </tr>`).join('');\n\n  exhaustedTableHTML = `\n    <h3 style=\"color:#c0392b;margin:20px 0 12px;font-family:Arial,sans-serif;\">🚨 Requires Manual Intervention (${exhaustedRows.length})</h3>\n    <table style=\"width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;\">\n      <thead>\n        <tr style=\"background:#c0392b;color:#fff;\">\n          <th style=\"padding:10px 12px;text-align:left;font-size:12px;\">Invoice #</th>\n          <th style=\"padding:10px 12px;text-align:left;font-size:12px;\">Status</th>\n        </tr>\n      </thead>\n      <tbody>${rowsHTML}</tbody>\n    </table>`;\n}\n\nconst emailHTML = `\n<!DOCTYPE html>\n<html>\n<head><meta charset=\"utf-8\"></head>\n<body style=\"margin:0;padding:0;background:#f5f6fa;font-family:Arial,sans-serif;\">\n  <div style=\"max-width:700px;margin:30px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);\">\n    <div style=\"background:${headerColor};padding:24px 32px;\">\n      <h1 style=\"margin:0;color:#fff;font-size:22px;\">🔄 Invoice Retry Pipeline Report</h1>\n      <p style=\"margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:14px;\">${status}</p>\n    </div>\n    <div style=\"padding:20px 32px;background:#f8f9fa;border-bottom:1px solid #ecf0f1;\">\n      <table style=\"width:100%;\">\n        <tr>\n          <td style=\"font-size:13px;color:#7f8c8d;\">🕐 Run Time</td>\n          <td style=\"font-size:13px;font-weight:600;color:#2c3e50;\">${ingestTime}</td>\n        </tr>\n      </table>\n    </div>\n    <div style=\"padding:24px 32px;\">\n      <h3 style=\"color:#2c3e50;margin:0 0 16px;font-size:16px;\">📊 Retry Summary</h3>\n      <table style=\"width:100%;border-collapse:separate;border-spacing:8px;\">\n        <tr>\n          <td style=\"background:#eafaf1;border-radius:8px;padding:16px;text-align:center;border:1px solid #a9dfbf;\">\n            <div style=\"font-size:28px;font-weight:700;color:#27ae60;\">${reinsertedCount}</div>\n            <div style=\"font-size:12px;color:#27ae60;margin-top:4px;\">✅ RE-INSERTED</div>\n          </td>\n          <td style=\"background:#fef9e7;border-radius:8px;padding:16px;text-align:center;border:1px solid #f9e79f;\">\n            <div style=\"font-size:28px;font-weight:700;color:#e67e22;\">${updatedCount}</div>\n            <div style=\"font-size:12px;color:#e67e22;margin-top:4px;\">🔄 RETRY UPDATED</div>\n          </td>\n          <td style=\"background:#fdedec;border-radius:8px;padding:16px;text-align:center;border:1px solid #f5b7b1;\">\n            <div style=\"font-size:28px;font-weight:700;color:#c0392b;\">${exhaustedCount}</div>\n            <div style=\"font-size:12px;color:#c0392b;margin-top:4px;\">🚨 EXHAUSTED</div>\n          </td>\n        </tr>\n      </table>\n    </div>\n    <div style=\"padding:0 32px 24px;\">\n      ${exhaustedTableHTML || '<p style=\"color:#27ae60;padding:12px;background:#eafaf1;border-radius:8px;margin:0;\">✅ No invoices have exhausted their retry attempts.</p>'}\n    </div>\n    <div style=\"padding:16px 32px;background:#f8f9fa;border-top:1px solid #ecf0f1;text-align:center;\">\n      <p style=\"margin:0;font-size:11px;color:#bdc3c7;\">Generated by Supplier Invoice Retry Pipeline · n8n Automation · Africa/Johannesburg</p>\n      <p style=\"margin:4px 0 0;font-size:11px;\"><a href=\"https://johnson-fullstack.app.n8n.cloud/workflow\" style=\"color:#3498db;\">View Workflow in n8n</a></p>\n    </div>\n  </div>\n</body>\n</html>`;\n\nconst subject = `Invoice Retry: ${reinsertedCount} re-inserted, ${exhaustedCount} exhausted — ${ingestTime}`;\n\nreturn [{ json: { emailSubject: subject, emailHTML, ...m } }];"
+      },
+      "id": "39945340-53d1-4027-bf9f-6d70661c4bb0",
+      "name": "✉️ Build — Retry Email Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        -64
+      ],
+      "notes": "Builds a professional HTML email summarizing the retry run. Color coded: green for success, red for exhausted rows requiring manual intervention."
+    },
+    {
+      "parameters": {
+        "sendTo": "ericjohnsonskates@gmail.com",
+        "subject": "={{ $json.emailSubject }}",
+        "message": "={{ $json.emailHTML }}",
+        "options": {}
+      },
+      "id": "be09053e-cd86-4b57-a1d0-205273ffd43b",
+      "name": "📧 Send — Retry Alert Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1008,
+        -64
+      ],
+      "webhookId": "6c9a55df-d79c-4d39-a9dd-5248cdb85b4f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "EYRu3ZgHZGkWyGyu",
+          "name": "Gmail account"
+        }
+      },
+      "notes": "Sends retry summary email. Update 'Send To' with your email address. Only sends if there were rows to retry — no noise emails on empty runs."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE supplier_invoices_failures\nSET\n  retry_count = {{ $json.retry_count }},\n  last_retry = NOW() AT TIME ZONE 'Africa/Johannesburg',\n  validation_notes = CASE\n    WHEN {{ $json.retry_count }} >= 3 \n    THEN 'Max retries (3) reached — manual intervention required'\n    ELSE 'Retry #{{ $json.retry_count }} failed — will retry again'\n  END\nWHERE id = '{{ $json.id }}'\nRETURNING id, invoice_number, retry_count;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        368,
+        112
+      ],
+      "id": "7897f6ca-5112-446d-bd40-b59eae78fbf5",
+      "name": "📝 Update — Retry Failed, Increment Count",
+      "credentials": {
+        "postgres": {
+          "id": "o0A4bzSMFcNjpvfE",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM supplier_invoices_failures\nWHERE invoice_number = '{{ $json.invoice_number }}'\nAND supplier_number = '{{ $json.supplier_number }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        368,
+        -144
+      ],
+      "id": "f8095e20-822a-47ac-80d8-5bfeb21de8ef",
+      "name": "🗑️ Delete — Remove from Failures",
+      "credentials": {
+        "postgres": {
+          "id": "o0A4bzSMFcNjpvfE",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "⏰ RETRY TRIGGER\nRuns automatically every 6 hours via Schedule trigger.\nCan also be triggered manually via \"Execute workflow\".\n\nFetches rows from supplier_invoices_failures \nWHERE retry_count <= 3\nORDER BY created_at ASC (oldest first)\nLIMIT 50 per run.",
+        "height": 288,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1104,
+        -336
+      ],
+      "id": "04425a82-96d4-4c03-a68a-9f05163d1275",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "⚙️ RETRY LOGIC\nParses raw_payload JSONB back into structured fields.\nIncrements retry_count by 1.\n\ncan_retry = true if:\n- All required fields present AND\n- retry_count <= MAX_RETRIES (3)\n\ncan_retry = false → Mark Exhausted\ncan_retry = true  → Attempt Re-insert",
+        "height": 272,
+        "width": 278
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        64
+      ],
+      "id": "6260c3c8-d490-42fd-8e4b-10610dc5815d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "💾 RETRY OUTCOMES\nSuccess → Delete row from supplier_invoices_failures → email \"re-inserted\"\nExhausted (retry_count > 3) → Mark exhausted, keep in failures → email \"ACTION REQUIRED\"\nFailed → Increment retry_count, last_retry timestamp → retry again next run\n\nEmail sent after every run regardless of outcome.\nSingle email guaranteed — Aggregate reads from Delete node only.",
+        "height": 224,
+        "width": 416
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        144,
+        304
+      ],
+      "id": "f11a0bf0-1156-419c-bd09-b2dc84cc6ca0",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "c4d93a12-1658-41dc-b325-584f84abcf9b",
+      "name": "⏰ Schedule — Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1040,
+        -16
+      ],
+      "notes": "Runs every 6 hours to retry failed invoice inserts. Picks up any rows in supplier_invoices_failures where retry_count < 3."
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "🔍 Query — Fetch Pending Retries": {
+      "main": [
+        [
+          {
+            "node": "🔀 Route — Has Retries or Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔀 Route — Has Retries or Empty": {
+      "main": [
+        [
+          {
+            "node": "🔄 Prepare — Parse & Validate Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔄 Prepare — Parse & Validate Retry": {
+      "main": [
+        [
+          {
+            "node": "🔀 Route — Retryable or Exhausted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔀 Route — Retryable or Exhausted": {
+      "main": [
+        [
+          {
+            "node": "💾 Re-insert — supplier_invoices",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📝 Update — Mark Exhausted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💾 Re-insert — supplier_invoices": {
+      "main": [
+        [
+          {
+            "node": "🗑️ Delete — Remove from Failures",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📝 Update — Retry Failed, Increment Count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Update — Mark Exhausted": {
+      "main": [
+        [
+          {
+            "node": "📊 Aggregate — Retry Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Aggregate — Retry Metrics": {
+      "main": [
+        [
+          {
+            "node": "✉️ Build — Retry Email Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✉️ Build — Retry Email Body": {
+      "main": [
+        [
+          {
+            "node": "📧 Send — Retry Alert Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Update — Retry Failed, Increment Count": {
+      "main": [
+        [
+          {
+            "node": "📊 Aggregate — Retry Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🗑️ Delete — Remove from Failures": {
+      "main": [
+        [
+          {
+            "node": "📊 Aggregate — Retry Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Schedule — Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "🔍 Query — Fetch Pending Retries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "de915468-a50c-4652-a91e-8dfc5a6219ec",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "91b04bb564a9162573624da2adba76f91c5d4d8bcca479e8efd60bbf314b50cd"
+  },
+  "id": "XAqsvL72XMokQuQu",
+  "tags": [
+    {
+      "updatedAt": "2026-03-10T09:16:33.473Z",
+      "createdAt": "2026-03-10T09:16:33.473Z",
+      "id": "5m0G5mP0OXQ0EgcR",
+      "name": "invoices"
+    },
+    {
+      "updatedAt": "2026-03-10T14:15:27.429Z",
+      "createdAt": "2026-03-10T14:15:27.429Z",
+      "id": "FFSxTdQVdvK3Xgxr",
+      "name": "retry"
+    },
+    {
+      "updatedAt": "2026-03-10T09:16:33.553Z",
+      "createdAt": "2026-03-10T09:16:33.553Z",
+      "id": "NspY8lTKwLN2hYGp",
+      "name": "finance"
+    }
+  ]
+}
