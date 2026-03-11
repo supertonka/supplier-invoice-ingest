@@ -8,22 +8,22 @@
 
 ## Table of Contents
 
-1. [Architecture Overview](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#architecture-overview)
-2. [Workflows](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#workflows)
-3. [Node-by-Node Breakdown — Main Workflow](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#node-by-node-breakdown--main-workflow)
-4. [Node-by-Node Breakdown — Retry Workflow](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#node-by-node-breakdown--retry-workflow)
-5. [Triggers & How to Run](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#triggers--how-to-run)
-6. [CSV Format & Field Mapping](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#csv-format--field-mapping)
-7. [Database Schema & Setup](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#database-schema--setup)
-8. [Validation Rules](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#validation-rules)
-9. [Deduplication Logic](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#deduplication-logic)
-10. [Binary Field Normalisation](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#binary-field-normalisation)
-11. [Dry-Run Mode](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#dry-run-mode)
-12. [Retry Pipeline](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#retry-pipeline)
-13. [Email Alerts](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#email-alerts)
-14. [n8n Credentials & Configuration](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#n8n-credentials--configuration)
-15. [Test Evidence](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#test-evidence)
-16. [Key Design Decisions](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#key-design-decisions)
+1. [Architecture Overview](#architecture-overview)
+2. [Workflows](#workflows)
+3. [Node-by-Node Breakdown — Main Workflow](#node-by-node-breakdown--main-workflow)
+4. [Node-by-Node Breakdown — Retry Workflow](#node-by-node-breakdown--retry-workflow)
+5. [Triggers & How to Run](#triggers--how-to-run)
+6. [CSV Format & Field Mapping](#csv-format--field-mapping)
+7. [Database Schema & Setup](#database-schema--setup)
+8. [Validation Rules](#validation-rules)
+9. [Deduplication Logic](#deduplication-logic)
+10. [Binary Field Normalisation](#binary-field-normalisation)
+11. [Dry-Run Mode](#dry-run-mode)
+12. [Retry Pipeline](#retry-pipeline)
+13. [Email Alerts](#email-alerts)
+14. [n8n Credentials & Configuration](#n8n-credentials--configuration)
+15. [Test Evidence](#test-evidence)
+16. [Key Design Decisions](#key-design-decisions)
 
 ---
 
@@ -235,7 +235,7 @@ normalizedBinary.file = binaryData[firstKey];
 
 ### 🔍 Validate Row — Business Rules
 
-- Runs all 5 business validation rules (see [Validation Rules](https://claude.ai/chat/4428f3eb-1b00-4ab9-a5d2-b34eaea4439c#validation-rules))
+- Runs all 5 business validation rules (see [Validation Rules](#validation-rules))
 - Returns `valid: true/false`, `validation_notes`, `_errorCount`, `_warningCount` per row
 - Rows with errors → `valid: false` → routed to failures table
 - Rows with warnings only → `valid: true` → proceed with warning in `validation_notes`
