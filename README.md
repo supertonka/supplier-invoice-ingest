@@ -316,7 +316,8 @@ normalizedBinary.file = binaryData[firstKey];
 
 ## Node-by-Node Breakdown — Retry Workflow (supplier-retry.json)
 
-![retry logic workflow  executionsPNG](file:///C:/Users/Super%20Tonka/Desktop/4%20-%20HORSEMEN/15%20-%20FULL%20STACK/AI%20SOFTWARE%20ENGINEER%20WORK/deliverables/new/retry%20logic%20workflow%20+%20executions.PNG?msec=1773191454137)
+<img width="1770" height="925" alt="retry logic workflow + executions" src="https://github.com/user-attachments/assets/243257a5-ba7c-46e3-a10f-c62db6f86fd7" />
+
 
 Screenshot showing entire '`supplier-retry.json`' workflow with sticky-notes.
 
@@ -619,7 +620,8 @@ SELECT EXISTS(
 ) as is_duplicate;
 ```
 
-![DEDUP execute once is ONPNG](file:///C:/Users/Super%20Tonka/Desktop/4%20-%20HORSEMEN/15%20-%20FULL%20STACK/AI%20SOFTWARE%20ENGINEER%20WORK/deliverables/new/supplier%20ingest/DEDUP%20execute%20once%20is%20ON.PNG?msec=1773191320974)
+<img width="786" height="483" alt="DEDUP execute once is ON" src="https://github.com/user-attachments/assets/fdbb0c57-b30e-4545-aa07-7dcb02712cd6" />
+
 
 Screenshot showing 'Always Output Data' toggled on.
 
@@ -661,7 +663,8 @@ A `DRY_RUN` config flag enables safe testing without touching production data.
 
 Open **⚙️ Config — Pipeline Settings** and set:
 
-![DRYRUN truePNG](file:///C:/Users/Super%20Tonka/Desktop/4%20-%20HORSEMEN/15%20-%20FULL%20STACK/AI%20SOFTWARE%20ENGINEER%20WORK/deliverables/new/supplier%20ingest/DRY_RUN%20true.PNG?msec=1773191167647)
+<img width="938" height="548" alt="DRY_RUN true" src="https://github.com/user-attachments/assets/8cad18a9-abab-4cab-8f2d-1481b869901f" />
+
 
 Screenshot showing DRY_RUN toggled true.
 
@@ -683,15 +686,18 @@ DRY_RUN: true  → condition "dry_run is false" = FALSE → supplier_invoices_st
 
 When `DRY_RUN: true` is set and `supplier_batch.csv` is submitted:
 
-![staging populated  CopyPNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supplier%20ingest\staging%20populated%20-%20Copy.PNG?msec=1773191044600)
+<img width="961" height="548" alt="staging populated - Copy" src="https://github.com/user-attachments/assets/8e20b0af-a981-4c92-b024-83594e32ac2f" />
+
 
 **Screenshot A** shows `supplier_invoices_staging` populated with 3 rows.
 
-![normal NOT populated  CopyPNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supplier%20ingest\normal%20NOT%20populated%20-%20Copy.PNG?msec=1773191098208)
+<img width="963" height="477" alt="normal NOT populated - Copy" src="https://github.com/user-attachments/assets/c47aa8cb-6e73-47a4-8dff-e76a37d2ced6" />
+
 
 **Screenshot B** shows `supplier_invoices` is empty — production data is completely unaffected.
 
-![4 processed 3 inserted 1 duplicates 0 failedPNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supplier%20ingest\4%20processed%203%20inserted%201%20duplicates%200%20failed.PNG?msec=1773188181880)
+<img width="1920" height="925" alt="4 processed 3 inserted 1 duplicates 0 failed" src="https://github.com/user-attachments/assets/5bb84dc6-40f1-498e-a010-28d5471db2e5" />
+
 
 The email alert is sent in both modes with identical metrics and format. The `source_file_name`, `source_hash`, and all counts are preserved in the staging table for full audit traceability.
 
@@ -823,11 +829,13 @@ Invoice Retry: {reinserted} re-inserted, {exhausted} exhausted — {timestamp} S
 - **Email subject:** `Supplier Ingest: 3 ok, 1 dup, 0 failed — supplier_batch.csv`
 - **Evidence:** Email screenshot + Supabase `supplier_invoices` showing 3 rows with `status = 'inserted'`
 
-![4 processed 3 inserted 1 duplicates 0 failedPNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supplier%20ingest\4%20processed%203%20inserted%201%20duplicates%200%20failed.PNG?msec=1773188181880)
+<img width="1920" height="925" alt="4 processed 3 inserted 1 duplicates 0 failed" src="https://github.com/user-attachments/assets/4b8260eb-02f2-4cab-b325-7bc743717c48" />
+
 
 Screenshot of email showing 4 `processed`, 3 `inserted`, 1 `duplicates` and 0 `failed` operations.
 
-![SQL QueryPNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supabase\SQL%20Query.PNG?msec=1773188267839)
+<img width="906" height="674" alt="SQL Query 1" src="https://github.com/user-attachments/assets/6504e139-5092-40b7-83c7-cf56de44846a" />
+
 
 Screenshot showing 3 rows of supplier invoice data.
 
@@ -837,7 +845,7 @@ Screenshot showing 3 rows of supplier invoice data.
 - **Expected:** 0 inserted, 4 duplicates, 0 failed
 - **Evidence:** Email screenshot showing 0 inserted, 4 duplicates
 
-![4 processed 0 inserted 4 duplicates 0 failedPNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supplier%20ingest\4%20processed%200%20inserted%204%20duplicates%200%20failed.PNG?msec=1773188290607)
+<img width="1920" height="919" alt="4 processed 0 inserted 4 duplicates 0 failed" src="https://github.com/user-attachments/assets/b34e1b5a-82e0-4e0b-b195-e28f6ade34b3" />
 
 Screenshot of email showing 4 `processed`, 0 `inserted`, 4`duplicates` and 0 `failed` operations.
 
@@ -847,11 +855,11 @@ Screenshot of email showing 4 `processed`, 0 `inserted`, 4`duplicates` and 0 `fa
 - **Expected:** 0 inserted, 0 duplicates, 1 failed
 - **Evidence:** Email showing `ERROR: Invoice date is in the future: 2027-01-01` + Supabase `supplier_invoices_failures` screenshot
 
-![0 processed 0 inserted 0 duplicates 1 failed with reasonPNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supplier%20ingest\0%20processed%200%20inserted%200%20duplicates%201%20failed%20with%20reason.PNG?msec=1773188323475)
+<img width="1920" height="920" alt="0 processed 0 inserted 0 duplicates 1 failed with reason" src="https://github.com/user-attachments/assets/ae57e87d-7ee5-4a11-ac6d-c126795a329a" />
 
 Screenshot of email showing 0 `processed`, 0 `inserted`, 0 `duplicates `and 1 `failed` operations.
 
-![failed tablePNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supabase\failed%20table.PNG?msec=1773188346794)
+<img width="1920" height="390" alt="failed table" src="https://github.com/user-attachments/assets/a71e0a4b-bed4-4f56-b4ec-0cf85d33e281" />
 
 Screenshot showing a single failed entry in '`supplier_invoices_failures`'.
 
@@ -865,27 +873,29 @@ Screenshot showing a single failed entry in '`supplier_invoices_failures`'.
   - Screenshot B: `supplier_invoices` empty — production data unaffected
   - The email metrics are identical to a live run; only the destination table differs
 
-![DRYRUN truePNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supplier%20ingest\DRY_RUN%20true.PNG?msec=1773188583779)
+<img width="938" height="548" alt="DRY_RUN true" src="https://github.com/user-attachments/assets/9eebe64b-9d6c-49db-b01b-51c2e5532c69" />
 
 Screenshot showing variable `DRY_RUN` set to '`true`'.
 
-![staging populatedPNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supplier%20ingest\staging%20populated.PNG?msec=1773188790219)
+<img width="1920" height="535" alt="staging table 3 rows" src="https://github.com/user-attachments/assets/30eec52e-c897-48f4-9e4d-937c586b5a76" />
 
 Screenshot showing multiple entries into `supplier_invoices_staging` table.
 
-![normal NOT populatedPNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supplier%20ingest\normal%20NOT%20populated.PNG?msec=1773190826454)
+<img width="963" height="477" alt="normal NOT populated" src="https://github.com/user-attachments/assets/b9673b7d-cf01-42b9-9e78-61995e5c858c" />
 
 Screenshot showing no entries in the `supplier_invoices` table.
 
 ### Test 5 — Google Drive Trigger
 
-- **Action:* Uploaded `supplier_batch.csv` directly to the watched Google Drive folder ![file in g drivePNG](file:///C:/Users/Super%20Tonka/Desktop/4%20-%20HORSEMEN/15%20-%20FULL%20STACK/AI%20SOFTWARE%20ENGINEER%20WORK/deliverables/new/supplier%20ingest/file%20in%20g%20drive.PNG?msec=1773189225810) 
+- **Action:* Uploaded `supplier_batch.csv` directly to the watched Google Drive folder ![file in g drivePNG]
+
+<img width="957" height="505" alt="file in g drive" src="https://github.com/user-attachments/assets/61610703-782f-4462-af0a-a322e7e728a4" />
 
 Screenshot showing `supplier_batch.csv` file inside folder named `supplier-invoices-inbox` in Google Drive.
 
 - **Expected:** Pipeline triggers automatically within 1 minute, identical results to Test 1
 
-![auto triggered g branchPNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supplier%20ingest\auto%20triggered%20g%20branch.PNG?msec=1773189193756)
+<img width="1659" height="755" alt="auto triggered g branch" src="https://github.com/user-attachments/assets/bc66318f-0bce-47a0-a1f2-26d411c0b775" />
 
 Screenshot of showing completed workflow triggered by `Google Drive Watch Folder`.
 
@@ -895,13 +905,20 @@ Screenshot of showing completed workflow triggered by `Google Drive Watch Folder
 
 ### Test 6 — Retry Success
 
-- **Setup:** Valid row inserted directly into `supplier_invoices_failures` with `retry_count: 0`![sql false insertPNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supplier%20ingest\sql%20false%20insert.PNG?msec=1773189383010)
+- **Setup:** Valid row inserted directly into `supplier_invoices_failures` with `retry_count: 0`
 
-         Screenshot showing SQL query of invalid entry into `supplier_invoices_failures`.
+<img width="959" height="474" alt="sql false insert" src="https://github.com/user-attachments/assets/55a6667f-0bd7-4e57-9b03-28a611995d40" />
+
+Screenshot showing SQL query of invalid entry into `supplier_invoices_failures`.
 
 - **Action:** Retry workflow triggered manually
 - **Expected:** Row re-inserted into `supplier_invoices`, deleted from `supplier_invoices_failures`
-- **Evidence:** Retry email showing `1 re-inserted, 0 exhausted`![1 reinserted 0 retryupdated 0 exhaustedPNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supplier%20ingest\1%20re-inserted%200%20retry-updated%200%20exhausted.PNG?msec=1773189409565)Screenshot of email showing 1 `re-inserted`, 0 `retry updated` and 0 `exhausted` operations.
+- **Evidence:** Retry email showing `1 re-inserted, 0 exhausted`
+
+<img width="1920" height="912" alt="1 re-inserted 0 retry-updated 0 exhausted" src="https://github.com/user-attachments/assets/ee804685-5eff-4d4c-9d97-c8a38207d486" />
+
+
+Screenshot of email showing 1 `re-inserted`, 0 `retry updated` and 0 `exhausted` operations.
 
 ### Test 7 — Retry Exhaustion
 
@@ -910,7 +927,7 @@ Screenshot of showing completed workflow triggered by `Google Drive Watch Folder
 - **Expected:** Row marked exhausted, remains in failures table for manual review
 - **Evidence:** Retry email showing `0 re-inserted, 1 exhausted` with red "ACTION REQUIRED" header and exhausted invoices table
 
-![0 reinserted 0 retryupdated 1 exhaustedPNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supplier%20ingest\0%20re-inserted%200%20retry-updated%201%20exhausted.PNG?msec=1773189423372)
+<img width="1920" height="918" alt="0 re-inserted 0 retry-updated 1 exhausted" src="https://github.com/user-attachments/assets/faab7f6b-986e-4f3e-bdd7-eba761cd12fc" />
 
 Screenshot of email showing 0 `re-inserted`, 0 `retry updated` and 1 `exhausted` operations.
 
@@ -923,8 +940,7 @@ SELECT invoice_number, supplier_number, status, validation_notes
 FROM supplier_invoices
 ORDER BY ingest_timestamp DESC;
 ```
-
-![SQL Query 1PNG](file://C:\Users\Super%20Tonka\Desktop\4%20-%20HORSEMEN\15%20-%20FULL%20STACK\AI%20SOFTWARE%20ENGINEER%20WORK\deliverables\new\supabase\SQL%20Query%201.PNG?msec=1773189517570)
+<img width="906" height="674" alt="SQL Query 1" src="https://github.com/user-attachments/assets/c8ede384-0760-4ae7-94a0-b9d66d1ed1b7" />
 
 Screenshot of results shows each input row mapped to its final `status` and any `validation_notes`.
 
